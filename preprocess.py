@@ -15,6 +15,7 @@ user_with_artist_data = pd.merge(user_data,song_data[['song_id','artist_id']],ho
 user_with_artist_data.to_csv(USER_WITH_ARTIST_FILE_PATH)
 
 # get the numbers of user action for each artist_id
-tmp = user_with_artist_data[['artist_id','action_type']]
+tmp = user_with_artist_data[['artist_id','Ds']]
 tmp['num']=1 # add a column 1 for groupby sum count.
-group = tmp.groupby(['artist_id','action_type']).sum()
+group = tmp.groupby(['artist_id','Ds']).sum()
+
