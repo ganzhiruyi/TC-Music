@@ -85,20 +85,56 @@ def check_time_series():
 		run_check(id)
 		print "complete " + str(id) + "*********************"
 
-def run_model(id):
+
+def get_param(ts_log_diff):
+	#ACF and PACF plots:
+	from statsmodels.tsa.stattools import acf, pacf
+	lag_acf = acf(ts_log_diff, nlags=10)
+	lag_pacf = pacf(ts_log_diff, nlags=10, method='ols')
+	#Plot ACF: 
+	plt.subplot(121) 
+	plt.plot(lag_acf)
+	plt.axhline(y=0,linestyle='--',color='gray')
+	plt.axhline(y=-1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
+	plt.axhline(y=1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
+	plt.title('Autocorrelation Function')
+	#Plot PACF:
+	plt.subplot(122)
+	plt.plot(lag_pacf)
+	plt.axhline(y=0,linestyle='--',color='gray')
+	plt.axhline(y=-1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
+	plt.axhline(y=1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
+	plt.title('Partial Autocorrelation Function')
+	plt.tight_layout()
+	plt.show()
+
+
+def run_model(id,param):
 	path = 'data/artist/'+str(id)+'.csv'
 	split = 21
 	ts = get_artist_data_as_time_series(path)[1] # only get the 'play' column
 	moving_avg = pd.rolling_mean(ts,split)
 	ts_moving_avg_diff = ts - moving_avg
 	ts_moving_avg_diff.dropna(inplace=True)
+
+	# get_param(ts_moving_avg_diff)
 	
-	model = ARIMA(ts_moving_avg_diff, order=(2,1,0))
+	# model = ARIMA(ts_moving_avg_diff, order=(2,0,1))
+	model = ARIMA(ts_moving_avg_diff, order=param)
 	results_AR = model.fit()
 
 	plt.plot(ts_moving_avg_diff)
 	plt.plot(results_AR.fittedvalues, color='red')
 	plt.title('RSS: %.4f'% sum((results_AR.fittedvalues-ts_moving_avg_diff)**2))
-	plt.show()
+	# plt.show()
+	path = 'image/df/'+str(id)+'.png'
+	plt.savefig(path)
+	plt.close()
 
-run_model(50)
+for id in xrange(1,51):
+	if id ==17 or id == 25:
+		param = (2,0,2)
+	else:
+		param = (2,0,1)
+	run_model(id,param)
+	print str(id)+'*********************'
