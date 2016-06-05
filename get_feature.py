@@ -89,8 +89,8 @@ def check_time_series():
 def get_param(ts_log_diff):
 	#ACF and PACF plots:
 	from statsmodels.tsa.stattools import acf, pacf
-	lag_acf = acf(ts_log_diff, nlags=10)
-	lag_pacf = pacf(ts_log_diff, nlags=10, method='ols')
+	lag_acf = acf(ts_log_diff, nlags=20)
+	lag_pacf = pacf(ts_log_diff, nlags=20, method='ols')
 	#Plot ACF: 
 	plt.subplot(121) 
 	plt.plot(lag_acf)
@@ -109,29 +109,48 @@ def get_param(ts_log_diff):
 	plt.show()
 
 
-def run_model(id,param):
+def run_model(id,param,show_pcf_acf=False,show_predict_result=True,save_predict_result=False):
+	# use these show_pcf_acf,show_predict_result,save_predict_result you can control the result for debug
 	path = 'data/artist/'+str(id)+'.csv'
 	split = 21
 	ts = get_artist_data_as_time_series(path)[1] # only get the 'play' column
-	moving_avg = pd.rolling_mean(ts,split)
-	ts_moving_avg_diff = ts - moving_avg
-	ts_moving_avg_diff.dropna(inplace=True)
+	ts = pd.Series(ts.values,index=ts.index)
+	ts_log = np.log(ts) # use the log of data
 
-	# get_param(ts_moving_avg_diff)
+	#  use to show pcf and acf, for 1 diff and 2 diff
+	if show_pcf_acf:
+		diff_ts1 = ts.diff(1)
+		diff_ts1.dropna(inplace=True)
+		plt.plot(diff_ts1)
+		plt.show()
+		get_param(diff_ts1)
+
+		diff_ts2 = ts.diff(2)
+		diff_ts1.dropna(inplace=True)
+		plt.plot(diff_ts2)
+		plt.show()
+		get_param(diff_ts2) 
 	
-	# model = ARIMA(ts_moving_avg_diff, order=(2,0,1))
-	model = ARIMA(ts_moving_avg_diff, order=param)
+	model = ARIMA(ts_log, order=param)
 	results_AR = model.fit()
+	predict_rs = np.exp(results_AR.fittedvalues) # calculate the origin predict data
 
-	plt.plot(ts_moving_avg_diff)
-	plt.plot(results_AR.fittedvalues, color='red')
-	plt.title('RSS: %.4f'% sum((results_AR.fittedvalues-ts_moving_avg_diff)**2))
-	# plt.show()
-	path = 'image/df/'+str(id)+'.png'
-	plt.savefig(path)
-	plt.close()
+	if show_predict_result or save_predict_result:
+		plt.plot(ts)
+		plt.plot(predict_rs, color='red')
+		plt.title('RSS: %.4f'% np.sum((predict_rs-ts)**2))
+		if show_predict_result:
+			plt.show()
+		if save_predict_result:
+			path = 'image/df/'+str(id)+'.png'
+			plt.savefig(path)
+		plt.close()
+
+# run_model(1,(2,0,1))
 
 for id in xrange(1,51):
+	if id in [10,21,22,33,40]: # there has some error in these id, need to be check
+		continue
 	if id ==17 or id == 25:
 		param = (2,0,2)
 	else:
