@@ -85,32 +85,7 @@ def check_time_series():
 		run_check(id)
 		print "complete " + str(id) + "*********************"
 
-
-def get_param(ts_log_diff):
-	#ACF and PACF plots:
-	from statsmodels.tsa.stattools import acf, pacf
-	lag_acf = acf(ts_log_diff, nlags=20)
-	lag_pacf = pacf(ts_log_diff, nlags=20, method='ols')
-	#Plot ACF: 
-	plt.subplot(121) 
-	plt.plot(lag_acf)
-	plt.acorr(lag_acf)
-	plt.axhline(y=0,linestyle='--',color='gray')
-	plt.axhline(y=-1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
-	plt.axhline(y=1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
-	plt.title('Autocorrelation Function')
-	#Plot PACF:
-	plt.subplot(122)
-	plt.plot(lag_pacf)
-	plt.acorr(lag_pacf)
-
-	plt.axhline(y=0,linestyle='--',color='gray')
-	plt.axhline(y=-1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
-	plt.axhline(y=1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
-	plt.title('Partial Autocorrelation Function')
-	plt.tight_layout()
-	plt.show()
-
+import statsmodels.api as sm
 
 def run_model(id,param,show_pcf_acf=False,show_predict_result=True,save_predict_result=False):
 	# use these show_pcf_acf,show_predict_result,save_predict_result you can control the result for debug
@@ -118,48 +93,57 @@ def run_model(id,param,show_pcf_acf=False,show_predict_result=True,save_predict_
 	split = 21
 	ts = get_artist_data_as_time_series(path)[1] # only get the 'play' column
 	ts = pd.Series(ts.values,index=ts.index)
-
+	date_index = pd.date_range('2015-08-30', periods=62, freq='D')
 	#  use to show pcf and acf, for 1 diff and 2 diff
-	if show_pcf_acf:
-		diff_ts1 = ts.diff(1)
-		diff_ts1.dropna(inplace=True)
-		plt.plot(diff_ts1)
-		plt.show()
-		get_param(diff_ts1)
-
-		diff_ts2 = ts.diff(2)
-		diff_ts1.dropna(inplace=True)
-		plt.plot(diff_ts2)
-		plt.show()
-		get_param(diff_ts2) 
+	# diff_ts1 = ts.diff(1)
+	# diff_ts1.dropna(inplace=True)
 	
-	model = ARIMA(ts, order=param)
+	# diff_ts2 = ts.diff(2)
+	# diff_ts1.dropna(inplace=True)	
+	if show_pcf_acf:
+		# sm.graphics.tsa.plot_pacf(diff_ts1, lags=40)
+		# sm.graphics.tsa.plot_acf(diff_ts1, lags=40)
+		sm.graphics.tsa.plot_pacf(ts, lags=40)
+		sm.graphics.tsa.plot_acf(ts, lags=40)
+		plt.show()
+		plt.close()
+	
+	model = sm.tsa.ARMA(ts, order=param)
+	# model = sm.tsa.ARMA(diff_ts1,order=param)
+	# results_AR = model.fit(trend='nc', disp=-1)
 	results_AR = model.fit()
-	predict_rs = results_AR.fittedvalues # calculate the origin predict data
-	start = '2015-08-01'
-	end = '2015-08-31'
-	# predict_next = results_AR.predict(start,end,dynamic=True)
-
+	# print(results_AR.summary())
+	# predict_rs = results_AR.fittedvalues # calculate the origin predict data
+	
 	if show_predict_result or save_predict_result:
-		plt.plot(ts)
-		plt.plot(predict_rs, color='red')
-		# plt.plot(predict_next, color='green')
-		plt.title('RSS: %.4f'% np.sum((predict_rs-ts)**2))
+		results_AR.plot_predict(start='2015-03-02',end='2015-10-30')
+		# tmp = results_AR.predict(start='2015-08-31',end='2015-10-30')
+		# start = ts['2015-08-30']
+		# print 'start:',start
+		# tmp = pd.Series(tmp,index=date_index)
+		# tmp['2015-08-30'] = start
+		# tmp = np.cumsum(tmp)
+		# print tmp
 		if show_predict_result:
 			plt.show()
 		if save_predict_result:
-			path = 'image/df/'+str(id)+'.png'
+			path = 'image/predict/'+str(id)+'.png'
 			plt.savefig(path)
 		plt.close()
 
-run_model(10,(2,0,1))
+run_model(1,(4,2),show_pcf_acf=True)
+# run_model(22,(2,1),show_pcf_acf=False)
 
 # for id in xrange(1,51):
-# 	if id in [10,21,22,33,40]: # there has some error in these id, need to be check
+# 	# if id in [10,21,22,33,40]: # there has some error in these id, need to be check
+# 	# 	continue
+# 	if id == 6:
 # 		continue
-# 	if id ==17 or id == 25:
+# 	if id == 22 or id == 43:
+# 		param = (2,0,0)
+# 	elif id == 4 or id ==17 or id == 25:
 # 		param = (2,0,2)
 # 	else:
 # 		param = (2,0,1)
-# 	run_model(id,param)
+# 	run_model(id,param,show_predict_result=False,save_predict_result=True)
 # 	print str(id)+'*********************'
