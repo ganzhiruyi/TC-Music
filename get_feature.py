@@ -94,6 +94,7 @@ def get_param(ts_log_diff):
 	#Plot ACF: 
 	plt.subplot(121) 
 	plt.plot(lag_acf)
+	plt.acorr(lag_acf)
 	plt.axhline(y=0,linestyle='--',color='gray')
 	plt.axhline(y=-1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
 	plt.axhline(y=1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
@@ -101,6 +102,8 @@ def get_param(ts_log_diff):
 	#Plot PACF:
 	plt.subplot(122)
 	plt.plot(lag_pacf)
+	plt.acorr(lag_pacf)
+
 	plt.axhline(y=0,linestyle='--',color='gray')
 	plt.axhline(y=-1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
 	plt.axhline(y=1.96/np.sqrt(len(ts_log_diff)),linestyle='--',color='gray')
@@ -115,7 +118,6 @@ def run_model(id,param,show_pcf_acf=False,show_predict_result=True,save_predict_
 	split = 21
 	ts = get_artist_data_as_time_series(path)[1] # only get the 'play' column
 	ts = pd.Series(ts.values,index=ts.index)
-	ts_log = np.log(ts) # use the log of data
 
 	#  use to show pcf and acf, for 1 diff and 2 diff
 	if show_pcf_acf:
@@ -131,13 +133,17 @@ def run_model(id,param,show_pcf_acf=False,show_predict_result=True,save_predict_
 		plt.show()
 		get_param(diff_ts2) 
 	
-	model = ARIMA(ts_log, order=param)
+	model = ARIMA(ts, order=param)
 	results_AR = model.fit()
-	predict_rs = np.exp(results_AR.fittedvalues) # calculate the origin predict data
+	predict_rs = results_AR.fittedvalues # calculate the origin predict data
+	start = '2015-08-01'
+	end = '2015-08-31'
+	# predict_next = results_AR.predict(start,end,dynamic=True)
 
 	if show_predict_result or save_predict_result:
 		plt.plot(ts)
 		plt.plot(predict_rs, color='red')
+		# plt.plot(predict_next, color='green')
 		plt.title('RSS: %.4f'% np.sum((predict_rs-ts)**2))
 		if show_predict_result:
 			plt.show()
@@ -146,14 +152,14 @@ def run_model(id,param,show_pcf_acf=False,show_predict_result=True,save_predict_
 			plt.savefig(path)
 		plt.close()
 
-# run_model(1,(2,0,1))
+run_model(10,(2,0,1))
 
-for id in xrange(1,51):
-	if id in [10,21,22,33,40]: # there has some error in these id, need to be check
-		continue
-	if id ==17 or id == 25:
-		param = (2,0,2)
-	else:
-		param = (2,0,1)
-	run_model(id,param)
-	print str(id)+'*********************'
+# for id in xrange(1,51):
+# 	if id in [10,21,22,33,40]: # there has some error in these id, need to be check
+# 		continue
+# 	if id ==17 or id == 25:
+# 		param = (2,0,2)
+# 	else:
+# 		param = (2,0,1)
+# 	run_model(id,param)
+# 	print str(id)+'*********************'
